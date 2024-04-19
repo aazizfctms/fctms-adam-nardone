@@ -21,18 +21,21 @@ public class GetTodosQueryHandler : IRequestHandler<GetTodosQuery, TodosVm>
 
     public async Task<TodosVm> Handle(GetTodosQuery request, CancellationToken cancellationToken)
     {
+        var priorityLevels = Enum.GetValues(typeof(PriorityLevel))
+            .Cast<PriorityLevel>()
+            .Select(p => new LookupDto { Id = (int)p, Title = p.ToString() })
+            .ToList();
+        
+        var todoLists = await _context.TodoLists
+            .AsNoTracking()
+            .ProjectTo<TodoListDto>(_mapper.ConfigurationProvider)
+            .OrderBy(t => t.Title)
+            .ToListAsync(cancellationToken);
+        
         return new TodosVm
         {
-            PriorityLevels = Enum.GetValues(typeof(PriorityLevel))
-                .Cast<PriorityLevel>()
-                .Select(p => new LookupDto { Id = (int)p, Title = p.ToString() })
-                .ToList(),
-
-            Lists = await _context.TodoLists
-                .AsNoTracking()
-                .ProjectTo<TodoListDto>(_mapper.ConfigurationProvider)
-                .OrderBy(t => t.Title)
-                .ToListAsync(cancellationToken)
+            PriorityLevels = priorityLevels,
+            Lists = todoLists
         };
     }
 }
